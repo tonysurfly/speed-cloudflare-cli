@@ -209,7 +209,7 @@ async function measureUpload(bytes, iterations) {
 }
 
 function logInfo(text, data) {
-  console.log(bold(' '.repeat(15 - text.length), `${text}:`, blue(data)));
+  console.log(bold(`${text}:`, blue(data)));
 }
 
 function logLatency(data) {
@@ -220,14 +220,14 @@ function logLatency(data) {
 function logSpeedTestResult(size, test) {
   const speed = stats.median(test).toFixed(2);
   console.log(
-    bold(' '.repeat(9 - size.length), size, 'speed:', yellow(`${speed} Mbps`))
+    bold(size, 'speed:', yellow(`${speed} Mbps`))
   );
 }
 
 function logDownloadSpeed(tests) {
   console.log(
     bold(
-      '  Download speed:',
+      '.9th Download speed:',
       green(stats.quartile(tests, 0.9).toFixed(2), 'Mbps')
     )
   );
@@ -236,13 +236,13 @@ function logDownloadSpeed(tests) {
 function logUploadSpeed(tests) {
   console.log(
     bold(
-      '    Upload speed:',
+      '.9th Upload speed:',
       green(stats.quartile(tests, 0.9).toFixed(2), 'Mbps')
     )
   );
 }
 
-async function speedTest() {
+async function speedTest(up, down) {
   const [ping, serverLocationData, { ip, loc, colo }] = await Promise.all([
     measureLatency(),
     fetchServerLocationData(),
@@ -255,35 +255,57 @@ async function speedTest() {
 
   logLatency(ping);
 
-  const testDown1 = await measureDownload(101000, 10);
-  logSpeedTestResult('100kB', testDown1);
+  if(down){
+    const testDown1 = await measureDownload(101000, 10);
+    logSpeedTestResult('Down: 100kB', testDown1);
 
-  const testDown2 = await measureDownload(1001000, 8);
-  logSpeedTestResult('1MB', testDown2);
+    const testDown2 = await measureDownload(1001000, 8);
+    logSpeedTestResult('Down: 1MB', testDown2);
 
-  const testDown3 = await measureDownload(10001000, 6);
-  logSpeedTestResult('10MB', testDown3);
+    const testDown3 = await measureDownload(10001000, 6);
+    logSpeedTestResult('Down: 10MB', testDown3);
 
-  const testDown4 = await measureDownload(25001000, 4);
-  logSpeedTestResult('25MB', testDown4);
+    const testDown4 = await measureDownload(25001000, 4);
+    logSpeedTestResult('Down: 25MB', testDown4);
 
-  const testDown5 = await measureDownload(100001000, 1);
-  logSpeedTestResult('100MB', testDown5);
+    const testDown5 = await measureDownload(100001000, 1);
+    logSpeedTestResult('Down: 100MB', testDown5);
 
-  const downloadTests = [
-    ...testDown1,
-    ...testDown2,
-    ...testDown3,
-    ...testDown4,
-    ...testDown5,
-  ];
-  logDownloadSpeed(downloadTests);
+    const downloadTests = [
+      ...testDown1,
+      ...testDown2,
+      ...testDown3,
+      ...testDown4,
+      ...testDown5,
+    ];
+    logDownloadSpeed(downloadTests);
+  }
+  if(up){
+    const testUp1 = await measureUpload(11000, 40);
+    logSpeedTestResult('Up: 10kB', testUp1);
 
-  const testUp1 = await measureUpload(11000, 10);
-  const testUp2 = await measureUpload(101000, 10);
-  const testUp3 = await measureUpload(1001000, 8);
-  const uploadTests = [...testUp1, ...testUp2, ...testUp3];
-  logUploadSpeed(uploadTests);
+    const testUp2 = await measureUpload(101000, 30);
+    logSpeedTestResult('Up: 100kB', testUp2);
+
+    const testUp3 = await measureUpload(1001000, 10);
+    logSpeedTestResult('Up: 1MB', testUp3);
+
+    // const testUp4 = await measureUpload(10001000, 4);
+    // logSpeedTestResult('10MB', testUp4);
+
+    // const testUp5 = await measureUpload(100001000, 1);
+    // logSpeedTestResult('100MB', testUp5);
+
+    const uploadTests = [
+      ...testUp1,
+      ...testUp2,
+      ...testUp3,
+      // ...testUp4,
+      // ...testUp5,
+    ];
+
+    logUploadSpeed(uploadTests);
+  }
 }
 
-speedTest();
+speedTest(process.argv.includes('-u'), process.argv.includes('-d'));
